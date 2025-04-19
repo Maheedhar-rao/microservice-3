@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lender Portal</title>
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+  <style>
+    body { font-family: 'Montserrat', sans-serif; text-align: center; padding: 30px; background: #f5f5f5; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; }
+    .submit-btn { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    .submit-btn:hover { background: #218838; }
+    .file-upload { margin-top: 10px; padding: 10px; border: 2px dashed #007bff; cursor: pointer; }
+    .selected { background-color: #ffc107; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Submit to Lenders</h1>
+    <input type="text" id="business-name" placeholder="Business Name" required />
+    <div>
+      <h3>Select Lenders</h3>
+      <div id="lender-grid"></div>
+    </div>
+    <div class="file-upload" onclick="document.getElementById('file-upload').click();">Click or Drop PDFs</div>
+    <input type="file" id="file-upload" accept="application/pdf" multiple hidden>
+    <textarea id="message-box">Good afternoon, Please review this file for underwriting. Thank you.</textarea>
+    <div>
+      <h4>Selected Lenders:</h4>
+      <pre id="selected-lenders">None selected</pre>
+    </div>
+    <button class="submit-btn" onclick="submitForm()">Submit</button>
+  </div>
+  <script>
+    const lenders = ["American Choice", "Arena", "Smart Step", "Rapid"];
+    const lenderGrid = document.getElementById('lender-grid');
+    const selectedFiles = [];
+
+    lenders.forEach(name => {
+      const div = document.createElement('div');
+      div.textContent = name;
+      div.style.padding = '10px';
+      div.style.border = '1px solid black';
+      div.style.margin = '5px';
+      div.style.display = 'inline-block';
+      div.onclick = () => {
+        div.classList.toggle('selected');
+        updateSelectedLenders();
+      };
+      lenderGrid.appendChild(div);
+    });
+
+    function updateSelectedLenders() {
+      const selected = [...document.querySelectorAll('.selected')].map(el => el.textContent);
+      document.getElementById('selected-lenders').textContent = selected.join('\n') || 'None selected';
+    }
+
+    async function addWatermark(file, text = "Confidential") {
+      const bytes = await file.arrayBuffer();
+      const pdfDoc = await PDFLib.PDFDocument.load(bytes);
+      pdfDoc.getPages().forEach(page => {
+        const { width, height } = page.getSize();
+        page.drawText(text, {
+          x: width / 4,
+          y: height / 2,
+          size: 40,
+          opacity: 0.3,
+          rotate: PDFLib.degrees(-45)
+        });
+      });
+      const newBytes = await pdfDoc.save();
+      return new File([newBytes], file.name, { type: 'application/pdf' });
+    }
+
+    document.getElementById('file-upload').addEventListener('change', async (event) => {
+      const files = Array.from(event.target.files);
+      for (let file of files) {
+        if (file.type === 'application/pdf') {
+          const watermarked = await addWatermark(file);
+          selectedFiles.push(watermarked);
+        }
+      }
+    });
+
+    function submitForm() {
+      const name = document.getElementById('business-name').value;
+      const message = document.getElementById('message-box').value;
+      const selectedLenders = [...document.querySelectorAll('.selected')].map(el => el.textContent);
+
+      const formData = new FormData();
+      formData.append('businessName', name);
+      formData.append('enteredData', message);
+      selectedLenders.forEach(l => formData.append('selectedOptions', l));
+      selectedFiles.forEach(f => formData.append('attachments', f));
+
+      fetch('/send-email', {
+        method: 'POST',
+        body: formData
+      }).then(res => {
+        if (res.redirected) {
+          window.location.href = res.url;
+        } else {
+          res.json().then(data => alert(data.message));
+        }
+      });
+    }
+  </script>
+</body>
+</html>
