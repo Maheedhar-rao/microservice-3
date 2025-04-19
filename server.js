@@ -10,6 +10,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const upload = multer({ storage: multer.memoryStorage() });
 app.use(express.static('public'));
+app.get('/', (req, res) => {
+  res.redirect('/lender.html');
+});
 
 const lenderEmails = JSON.parse(fs.readFileSync('./lender-emails.json', 'utf-8'));
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
