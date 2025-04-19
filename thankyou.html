@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Thank You</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f0f0f0; }
+    .container { background: white; padding: 30px; max-width: 600px; margin: auto; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .btn { background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Thank You!</h1>
+    <p>Your submission has been received.</p>
+    <div id="summary"></div>
+    <a href="lender.html" class="btn">Back to Dashboard</a>
+  </div>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get("success");
+    const failed = params.get("failed");
+
+    if (success || failed) {
+      const summary = document.getElementById("summary");
+      summary.innerHTML = `<p><strong>✅ Emails sent to:</strong> ${success}</p>`;
+      if (failed) {
+        const failedList = failed.split("|").join("<br>");
+        summary.innerHTML += `<p><strong>❌ Failed:</strong><br>${failedList}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>
